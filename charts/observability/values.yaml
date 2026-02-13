@@ -1,0 +1,7 @@
+kube-prometheus-stack:
+  grafana:
+    enabled: true
+    adminPassword: "admin"
+  prometheus:
+    prometheusSpec:
+      retention: 5d
