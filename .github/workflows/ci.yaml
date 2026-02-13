@@ -24,6 +24,23 @@ jobs:
         with:
           directory: .
           framework: terraform,kubernetes
+      - name: Run kube-bench (Job)
+        run: |
+          kubectl apply -f test/kube-bench-job.yaml
+          
+          kubectl wait --for=condition=complete job/kube-bench --timeout=120s
+          
+          kubectl logs job/kube-bench > kube-bench-report.json
+          
+          cat kube-bench-report.json | grep "Total" || true
+
+      - name: Upload kube-bench Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kube-bench-report
+          path: kube-bench-report.json
+          retention-days: 5
       - name: Create K8s Cluster (Kind)
         uses: helm/kind-action@v1
         with:
