@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -20,7 +21,16 @@ func TestTerraformNginxService(t *testing.T) {
 	if getKubeErr != nil {
 		defer k8s.DeleteNamespace(t, kubeOptions, "argocd")
 		fmt.Println("Infrastructure not found. Running Terraform Apply...")
-		terraformOptions := &terraform.Options{TerraformDir: "../../terraform"}
+		kubeContext := os.Getenv("KUBE_CONTEXT")
+		if kubeContext == "" {
+			kubeContext = "minikube"
+		}
+		terraformOptions := &terraform.Options{
+			TerraformDir: "../../terraform",
+			Vars: map[string]interface{}{
+				"kube_context": kubeContext,
+			},
+		}
 		defer terraform.Destroy(t, terraformOptions)
 		terraform.InitAndApply(t, terraformOptions)
 		k8s.WaitUntilServiceAvailable(t, kubeOptions, serviceName, 12, 5*time.Second)

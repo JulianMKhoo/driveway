@@ -50,6 +50,8 @@ jobs:
           terraform_version: "1.14.4"
           terraform_wrapper: false
       - name: Terraform Test
+        env:
+          KUBE_CONTEXT: kind-minikube
         run: |
           cd test/terratest
           go mod tidy
