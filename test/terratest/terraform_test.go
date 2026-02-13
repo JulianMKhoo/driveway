@@ -40,6 +40,20 @@ func TestTerraformNginxService(t *testing.T) {
 	}
 	argoOptions := k8s.NewKubectlOptions("", "", "argocd")
 	k8s.RunKubectl(t, argoOptions, "wait", "--for=condition=available", "deploy/argocd-server", "--timeout=300s")
+
+	// Debug: dump what's actually in the cluster
+	fmt.Println("=== DEBUG: Pods in highway namespace ===")
+	k8s.RunKubectl(t, kubeOptions, "get", "pods", "-o", "wide")
+	fmt.Println("=== DEBUG: Deployments in highway namespace ===")
+	k8s.RunKubectl(t, kubeOptions, "get", "deployments", "-o", "wide")
+	fmt.Println("=== DEBUG: Services in highway namespace ===")
+	k8s.RunKubectl(t, kubeOptions, "get", "svc")
+	fmt.Println("=== DEBUG: ArgoCD Application status ===")
+	k8s.RunKubectl(t, argoOptions, "get", "application", "nginx-highway", "-o", "jsonpath={.status.sync.status} {.status.health.status}")
+	fmt.Println("")
+	fmt.Println("=== DEBUG: Events in highway namespace ===")
+	k8s.RunKubectl(t, kubeOptions, "get", "events", "--sort-by=.lastTimestamp")
+
 	podFilter := metav1.ListOptions{LabelSelector: "app=nginx-highway-app"}
 	k8s.WaitUntilNumPodsCreated(t, kubeOptions, podFilter, 1, 60, 10*time.Second)
 	pods := k8s.ListPods(t, kubeOptions, podFilter)
