@@ -13,16 +13,17 @@ import (
 
 func TestTerraformNginxService(t *testing.T) {
 	t.Parallel()
-	serviceName := "nginx-service"
+	serviceName := "nginx-highway-nginx-app"
 	output := "<h1>Welcome to nginx!</h1>"
 	kubeOptions := k8s.NewKubectlOptions("", "", "highway")
 	_, getKubeErr := k8s.GetServiceE(t, kubeOptions, serviceName)
 	if getKubeErr != nil {
+		defer k8s.DeleteNamespace(t, kubeOptions, "argocd")
 		fmt.Println("Infrastructure not found. Running Terraform Apply...")
-		terraformOptions := &terraform.Options{TerraformDir: "../terraform"}
+		terraformOptions := &terraform.Options{TerraformDir: "../../terraform"}
 		defer terraform.Destroy(t, terraformOptions)
 		terraform.InitAndApply(t, terraformOptions)
-		k8s.WaitUntilServiceAvailable(t, kubeOptions, serviceName, 20, 5*time.Second)
+		k8s.WaitUntilServiceAvailable(t, kubeOptions, serviceName, 12, 5*time.Second)
 	} else {
 		fmt.Println("Infrastructure already exists. Skipping Apply and running health checks...")
 	}

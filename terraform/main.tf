@@ -1,10 +1,4 @@
 terraform {
-  # cloud {
-  #   organization = "PureHuman"
-  #   workspaces {
-  #     name = "highway-dev"
-  #   }
-  # }
 }
 
 

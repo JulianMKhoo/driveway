@@ -5,19 +5,19 @@ STAGE="local"
 while [[ $# -gt 0 ]]; do
     case $1 in
         -s=*)
-            AUTO_APPROVE="${1#*=}"
+            STAGE="${1#*=}"
             shift
             ;;
         -s)
-            AUTO_APPROVE="$2"
+            STAGE="$2"
             shift 2
             ;;
         --stage=*)
-            AUTO_APPROVE="${1#*=}"
+            STAGE="${1#*=}"
             shift
             ;;
         --stage)
-            AUTO_APPROVE="$2"
+            STAGE="$2"
             shift 2
             ;;
         -a=*)
@@ -65,7 +65,7 @@ else
     terraform apply
     echo "Applied successfully"
 fi
-elif [[ $STAGE == "local-cd" ]]
+elif [[ $STAGE == "local-cd" ]]; then
 terraform apply tfplan
 echo "Applied successfully"
 fi

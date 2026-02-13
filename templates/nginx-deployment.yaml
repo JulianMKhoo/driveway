@@ -47,12 +47,12 @@ spec:
           livenessProbe:
             httpGet:
               path: /
-              port: {{ .Values.service.targetPort }}
+              port: {{ .Values.livenessProbe.httpGet.port }}
           readinessProbe:
             httpGet:
               path: /
-              port: {{ .Values.service.targetPort }}
-    volumes:
-      - name: tmp-volume
-        emptyDir: {}
+              port: {{ .Values.readinessProbe.httpGet.port }}
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
 status: {}
