@@ -28,3 +28,10 @@ resource "helm_release" "argocd" {
     value = "NodePort"
   }]
 }
+
+resource "helm_release" "argocd_app" {
+  name       = "argocd-app"
+  chart      = "../charts/argocd"
+  namespace  = "argocd"
+  depends_on = [helm_release.argocd]
+}

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Release.Name }}-app
+  name: {{ .Release.Name }}-app
+  namespace: {{ .Values.namespace | default "highway" }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  automountServiceAccountToken: false
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-app
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-app
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - image: {{ .Values.image.repository }}@{{ .Values.image.digest }}
+          name: {{ .Release.Name }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+              name: http
+          volumeMounts:
+            - mountPath: /var/cache/nginx
+              name: tmp-volume
+            - mountPath: /var/run
+              name: tmp-volume
+            - mountPath: /tmp
+              name: tmp-volume
+          securityContext:
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources: 
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.targetPort }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.targetPort }}
+    volumes:
+      - name: tmp-volume
+        emptyDir: {}
+status: {}

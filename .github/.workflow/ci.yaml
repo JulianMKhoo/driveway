@@ -1,0 +1,36 @@
+name: Platform Guardrails
+description: "CI Config Repository"
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security:
+   runs-on: ubuntu-latest
+   steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform,kubernetes
+      - name: Create K8s Cluster (Kind)
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: minikube
+      - name: Terraform Make
+        run: |
+          make tf-plan
+        env:
+          KUBECONFIG: ${{ github.workspace }}/.kube/config
+    
