@@ -55,7 +55,7 @@ func TestTerraformNginxService(t *testing.T) {
 	k8s.RunKubectl(t, kubeOptions, "get", "events", "--sort-by=.lastTimestamp")
 
 	podFilter := metav1.ListOptions{LabelSelector: "app=nginx-highway-app"}
-	k8s.WaitUntilNumPodsCreated(t, kubeOptions, podFilter, 1, 60, 10*time.Second)
+	k8s.WaitUntilNumPodsCreated(t, kubeOptions, podFilter, 3, 60, 10*time.Second)
 	pods := k8s.ListPods(t, kubeOptions, podFilter)
 	k8s.WaitUntilPodAvailable(t, kubeOptions, pods[0].Name, 60, 10*time.Second)
 	tunnel := k8s.NewTunnel(kubeOptions, k8s.ResourceTypeService, serviceName, 0, 80)
