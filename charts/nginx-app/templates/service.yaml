@@ -1,15 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "nginx-app.fullname" . }}
   labels:
-    {{- include "nginx-app.labels" . | nindent 4 }}
+    app: {{ .Release.Name }}-service
+  name: {{ .Release.Name }}-service
+  namespace: highway
 spec:
-  type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - name: 80-8080
+      port: {{ .Values.service.port }}
       protocol: TCP
-      name: http
+      targetPort: {{ .Values.service.targetPort }}
   selector:
-    {{- include "nginx-app.selectorLabels" . | nindent 4 }}
+    app: {{ .Release.Name }}-app
+  type: {{ .Values.service.type }}
+status:
+  loadBalancer: {}

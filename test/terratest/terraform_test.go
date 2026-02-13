@@ -13,7 +13,7 @@ import (
 
 func TestTerraformNginxService(t *testing.T) {
 	t.Parallel()
-	serviceName := "nginx-highway-nginx-app"
+	serviceName := "nginx-highway-service"
 	output := "<h1>Welcome to nginx!</h1>"
 	kubeOptions := k8s.NewKubectlOptions("", "", "highway")
 	_, getKubeErr := k8s.GetServiceE(t, kubeOptions, serviceName)
