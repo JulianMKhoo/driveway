@@ -7,11 +7,9 @@ metadata:
   namespace: {{ .Values.namespace | default "highway" }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  automountServiceAccountToken: false
   selector:
     matchLabels:
       app: {{ .Release.Name }}-app
-  strategy: {}
   template:
     metadata:
       labels:
