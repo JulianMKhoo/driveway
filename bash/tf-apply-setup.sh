@@ -1,9 +1,33 @@
 #!/bin/bash
 
 AUTO_APPROVE=0
-
+STAGE="local"
 while [[ $# -gt 0 ]]; do
     case $1 in
+        -s=*)
+            AUTO_APPROVE="${1#*=}"
+            shift
+            ;;
+        -s)
+            AUTO_APPROVE="$2"
+            shift 2
+            ;;
+        --stage=*)
+            AUTO_APPROVE="${1#*=}"
+            shift
+            ;;
+        --stage)
+            AUTO_APPROVE="$2"
+            shift 2
+            ;;
+        -a=*)
+            AUTO_APPROVE="${1#*=}"
+            shift
+            ;;
+        -a)
+            AUTO_APPROVE="$2"
+            shift 2
+            ;;
         --auto-approve=*)
             AUTO_APPROVE="${1#*=}"
             shift
@@ -19,8 +43,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [[ $STAGE == "local" ]]; then
 cd terraform || exit 1
-
 if [[ ! -d "./plan" ]]; then
     echo "No plan directory found"
     exit 1
@@ -39,4 +63,8 @@ if [[ "$AUTO_APPROVE" == "true" || "$AUTO_APPROVE" == "1" ]]; then
 else
     terraform apply
     echo "Applied successfully"
+fi
+elif [[ $STAGE == "local-cd" ]]
+terraform apply tfplan
+echo "Applied successfully"
 fi

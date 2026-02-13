@@ -34,11 +34,10 @@ jobs:
           terraform_version: "1.14.4"
           terraform_wrapper: false
       - name: Terraform Plan
-        run: |
-          make tf-plan-local
+        run: make tf-plan-local-ci
         env:
           KUBECONFIG: ${{ github.workspace }}/.kube/config
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve tfplan
+        run: make tf-apply-local-cd
           
