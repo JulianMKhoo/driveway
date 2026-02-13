@@ -10,6 +10,7 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/gruntwork-io/terratest/modules/terraform"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestTerraformNginxService(t *testing.T) {
@@ -37,6 +38,10 @@ func TestTerraformNginxService(t *testing.T) {
 	} else {
 		fmt.Println("Infrastructure already exists. Skipping Apply and running health checks...")
 	}
+	podFilter := metav1.ListOptions{LabelSelector: "app=nginx-highway-app"}
+	k8s.WaitUntilNumPodsCreated(t, kubeOptions, podFilter, 1, 30, 10*time.Second)
+	pods := k8s.ListPods(t, kubeOptions, podFilter)
+	k8s.WaitUntilPodAvailable(t, kubeOptions, pods[0].Name, 30, 10*time.Second)
 	tunnel := k8s.NewTunnel(kubeOptions, k8s.ResourceTypeService, serviceName, 0, 80)
 	defer tunnel.Close()
 	tunnel.ForwardPort(t)

@@ -2,7 +2,10 @@ module github.com/JulianMKhoo/highway-config
 
 go 1.25.7
 
-require github.com/gruntwork-io/terratest v0.55.0
+require (
+	github.com/gruntwork-io/terratest v0.55.0
+	k8s.io/apimachinery v0.35.1
+)
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
@@ -114,7 +117,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.35.0 // indirect
-	k8s.io/apimachinery v0.35.0 // indirect
 	k8s.io/client-go v0.35.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
