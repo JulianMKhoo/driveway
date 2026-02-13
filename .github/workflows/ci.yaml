@@ -38,6 +38,6 @@ jobs:
         env:
           KUBECONFIG: ${{ github.workspace }}/.kube/config
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event.pull_request.merged == true
         run: make tf-apply-local-cd
           

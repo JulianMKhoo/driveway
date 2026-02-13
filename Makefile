@@ -21,7 +21,7 @@ tf-apply-local-cd:
 	./bash/tf-apply-setup.sh --stage=local-cd
 
 tf-local: 
-	$(MAKE) tf-plan-local 
+	$(MAKE) tf-plan-local
 	$(MAKE) tf-apply-local-auto
 
 clean:
