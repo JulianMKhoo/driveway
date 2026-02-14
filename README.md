@@ -1,6 +1,6 @@
 # Highway Config
 
-GitOps-driven Kubernetes platform that bootstraps ArgoCD via Terraform and continuously deploys a hardened nginx workload — with CI guardrails for secrets, IaC, and CIS benchmarks baked in.
+GitOps-driven Kubernetes platform that bootstraps ArgoCD via Terraform and continuously deploys a hardened, observable nginx workload — with CI guardrails for secrets, IaC, and CIS benchmarks baked in.
 
 ## Architecture
 
@@ -25,16 +25,23 @@ GitOps-driven Kubernetes platform that bootstraps ArgoCD via Terraform and conti
 │  ArgoCD (Continuous Delivery)                                │
 │                                                              │
 │  • Watches charts/nginx-app on HEAD                          │
+│  • Watches charts/observability on HEAD                      │
 │  • Auto-sync with prune + self-heal                          │
-└──────────────────────┬───────────────────────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────────────────────┐
-│  nginx workload (highway namespace)                          │
-│                                                              │
-│  Hardened: digest-pinned image, non-root, resource limits,   │
-│  liveness/readiness probes, NodePort service                 │
-└──────────────────────────────────────────────────────────────┘
+└──────────┬───────────────────────────────┬───────────────────┘
+           │                               │
+           ▼                               ▼
+┌─────────────────────────────┐ ┌─────────────────────────────┐
+│  nginx workload             │ │  Observability Stack         │
+│  (highway namespace)        │ │  (highway namespace)         │
+│                             │ │                              │
+│  Hardened: digest-pinned    │ │  • Prometheus (metrics)      │
+│  image, non-root, resource  │ │  • Grafana (dashboards)      │
+│  limits, probes, NodePort   │ │  • nginx-prometheus-exporter │
+│                             │ │    sidecar on nginx pods     │
+│  Exports metrics via        │ │  • ServiceMonitor (scrape    │
+│  nginx-prometheus-exporter  │◀┤    config, 30s interval)     │
+│  sidecar on :9113           │ │                              │
+└─────────────────────────────┘ └─────────────────────────────┘
 ```
 
 ## Tech Stack
@@ -42,13 +49,27 @@ GitOps-driven Kubernetes platform that bootstraps ArgoCD via Terraform and conti
 | Tool | Role | Why |
 |------|------|-----|
 | **Terraform** | Infrastructure bootstrap | Declarative provisioning of namespaces, ArgoCD, and the root Application CR |
-| **Helm** | Kubernetes packaging | Templated charts for both the ArgoCD app-of-apps pattern and the nginx workload |
+| **Helm** | Kubernetes packaging | Templated charts for the ArgoCD app-of-apps pattern, nginx workload, and observability stack |
 | **ArgoCD** | GitOps delivery | Auto-syncs desired state from this repo into the cluster with prune and self-heal |
-| **GitHub Actions** | CI pipeline | Runs security scans, IaC validation, and CIS benchmarks on every push/PR |
+| **Prometheus** | Metrics collection | Scrapes nginx metrics via ServiceMonitor; backed by kube-prometheus-stack |
+| **Grafana** | Dashboards & visualization | Pre-configured with Prometheus data source for cluster and application metrics |
+| **GitHub Actions** | CI pipeline | Runs security scans, IaC validation, integration tests, and CIS benchmarks on every push/PR |
 | **Terratest** | Infrastructure testing | Go-based integration tests that verify the deployed service returns 200 |
 | **Checkov** | Static analysis | Scans Terraform and Kubernetes manifests against CIS and best-practice policies |
 | **TruffleHog** | Secret detection | Filesystem and git-history scanning to prevent credential leaks |
 | **kube-bench** | CIS benchmarks | Runs the CIS Kubernetes Benchmark against the cluster and uploads the report |
+
+## Observability
+
+The platform ships a full monitoring stack deployed as a separate ArgoCD Application:
+
+| Component | Detail |
+|-----------|--------|
+| **kube-prometheus-stack** | Prometheus + Grafana deployed via `charts/observability/` (v81.6.7) |
+| **nginx-prometheus-exporter** | Sidecar container (`nginx/nginx-prometheus-exporter:1.4.1`) injected into the nginx Deployment, exposing metrics on `:9113` |
+| **stub_status endpoint** | ConfigMap-driven nginx config exposes `/stub_status` on `:8081` for the exporter to scrape |
+| **ServiceMonitor** | Prometheus auto-discovers the nginx metrics port with a 30-second scrape interval |
+| **ServerSideApply** | Enabled on the observability Application CR to handle large CRDs that exceed the 256 KB annotation limit |
 
 ## Security Posture
 
@@ -66,16 +87,22 @@ GitOps-driven Kubernetes platform that bootstraps ArgoCD via Terraform and conti
 
 ```
 highway-config/
-├── .github/workflows/ci.yaml   # CI pipeline — scans, plans, applies
+├── .github/workflows/ci.yaml   # CI pipeline — scans, plans, applies, tests
 ├── bash/
 │   ├── tf-plan-setup.sh         # Terraform plan wrapper (local + CI stages)
 │   └── tf-apply-setup.sh        # Terraform apply wrapper (auto-approve + CD)
 ├── charts/
-│   ├── argocd-app/              # Helm chart: ArgoCD Application CR
-│   │   └── templates/main.yaml  #   Points ArgoCD at charts/nginx-app
-│   └── nginx-app/               # Helm chart: hardened nginx deployment
-│       ├── templates/            #   Deployment, Service, HPA, Ingress, etc.
-│       └── values.yaml           #   Image digest, security context, resources
+│   ├── argocd-app/              # Helm chart: ArgoCD Application CRs
+│   │   └── templates/
+│   │       ├── main.yaml        #   Points ArgoCD at charts/nginx-app
+│   │       └── observability.yaml #  Points ArgoCD at charts/observability
+│   ├── nginx-app/               # Helm chart: hardened nginx deployment
+│   │   ├── templates/           #   Deployment, Service, ServiceMonitor,
+│   │   │                        #   ConfigMap, HPA, Ingress, etc.
+│   │   └── values.yaml          #   Image digest, security context, metrics config
+│   └── observability/           # Helm chart: kube-prometheus-stack wrapper
+│       ├── Chart.yaml           #   Depends on kube-prometheus-stack v81.6.7
+│       └── values.yaml          #   Prometheus retention, Grafana settings
 ├── templates/                   # Raw K8s manifests (reference / pre-Helm)
 ├── terraform/
 │   └── main.tf                  # Bootstraps namespace + ArgoCD + root app
@@ -107,6 +134,9 @@ make scan
 # Plan and apply infrastructure (creates namespace, ArgoCD, root app)
 make tf-local
 
+# Render Helm templates locally for debugging
+make helm-render
+
 # Tear everything down
 make clean
 ```
@@ -120,6 +150,7 @@ make clean
 | `make tf-apply-local` | Terraform apply (interactive approval) |
 | `make tf-apply-local-auto` | Terraform apply (auto-approve latest plan) |
 | `make tf-local` | Plan then auto-apply in one step |
+| `make helm-render` | Render Helm templates locally for debugging |
 | `make clean` | Terraform destroy |
 
 ## CI Pipeline
@@ -129,5 +160,6 @@ The **Platform Guardrails** workflow (`.github/workflows/ci.yaml`) runs on every
 1. **Secret Scan** — TruffleHog checks the repo for verified and unknown credential leaks
 2. **Checkov Scan** — Static analysis of Terraform and Kubernetes manifests
 3. **kube-bench** — Spins up a Kind cluster, runs the CIS Kubernetes Benchmark, and uploads the JSON report as a build artifact
-4. **Terraform Plan** — `terraform init` → `fmt` → `validate` → `plan`
-5. **Terraform Apply** — Runs only on merged PRs to `main`
+4. **Terratest** — Deploys the full stack on a Kind cluster and verifies HTTP 200 from the nginx service
+5. **Terraform Plan** — `terraform init` → `fmt` → `validate` → `plan`
+6. **Terraform Apply** — Runs only on merged PRs to `main`
