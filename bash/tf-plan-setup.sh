@@ -31,8 +31,8 @@ cd terraform || exit 1
 if [[ $STAGE == "local" ]]; then
 mkdir -p ./plan 
 LAST_NUM=$(ls ./plan/tf-*.tfplan 2>/dev/null | grep -oE '[0-9]+' | sort -n | tail -1)
-NEXT_NUM=$(( ${LAST_NUM:-0} + 1 ))
-FILE_ID=$(printf "%03d" $NEXT_NUM)
+NEXT_NUM=$(( ${LAST_NUM} + 1 ))
+FILE_ID=$NEXT_NUM
 fi
 
 terraform init 

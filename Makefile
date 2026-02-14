@@ -28,4 +28,4 @@ helm-render:
 	helm template nginx-highway charts/nginx-app -f charts/nginx-app/values.yaml 2>&1
 
 clean:
-	cd terraform && terraform destroy && cd ..
+	cd terraform && terraform destroy && kubectl delete namespace argocd && cd ..
